@@ -1,0 +1,83 @@
+{
+    "units": [
+        "g",
+        "kg",
+        "ml",
+        "l",
+        "tsp",
+        "tbsp",
+        "cup",
+        "pcs",
+        "cloves",
+        "grams",
+        "cm",
+        "bunch",
+        "sprig",
+        "oz",
+        "mm",
+        "pint",
+        "bottle"
+    ],
+    "recipes": {
+        "Chicken": {
+            "ingredients": {
+                "chicken": {
+                    "qty": 200.0,
+                    "unit": "g"
+                },
+                "water ": {
+                    "qty": 500.0,
+                    "unit": "ml"
+                },
+                "garlic": {
+                    "qty": 5.0,
+                    "unit": "cloves"
+                },
+                "ginger": {
+                    "qty": 200.0,
+                    "unit": "mm"
+                },
+                "Beef": {
+                    "qty": 200.0,
+                    "unit": "g"
+                }
+            },
+            "instructions": "Cook it all"
+        },
+        "Beef": {
+            "ingredients": {
+                "Stock": {
+                    "qty": 500.0,
+                    "unit": "ml"
+                },
+                "Beef": {
+                    "qty": 200.0,
+                    "unit": "g"
+                }
+            },
+            "instructions": "Cook well"
+        },
+        "Pork": {
+            "ingredients": {
+                "Pork": {
+                    "qty": 600.0,
+                    "unit": "g"
+                },
+                "Salt": {
+                    "qty": 2.0,
+                    "unit": "tsp"
+                }
+            },
+            "instructions": "Cook it"
+        },
+        "Ramen": {
+            "ingredients": {
+                "Noodles": {
+                    "qty": 100.0,
+                    "unit": "g"
+                }
+            },
+            "instructions": "Cook"
+        }
+    }
+}
