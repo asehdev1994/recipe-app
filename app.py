@@ -1,109 +1,103 @@
 import streamlit as st
-import uuid
-import socket
-from mobile_view import render_mobile
-from storage import load_data, save_data, load_sessions, save_sessions, delete_user
-from utils import format_qty, generate_shopping_list, generate_qr
+from storage import load_data, save_data, delete_user
+from utils import format_qty, generate_shopping_list
+from auth import sign_in, sign_up
 
 # =========================
-# AUTO-SET USER FROM URL
+# AUTH
 # =========================
-query_params = st.query_params
-
 if "user_id" not in st.session_state:
     st.session_state.user_id = None
 
-# If user passed in URL, use it
-if not st.session_state.user_id and "user" in query_params:
-    st.session_state.user_id = query_params["user"]
-
-# =========================
-# HELPER: BASE URL
-# =========================
-def get_base_url():
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-    return f"http://{local_ip}:8501"
-
-# =========================
-# USER HANDLING (REQUIRED + RADIO)
-# =========================
-from storage import get_all_users
-
-# -------------------------
-# INIT
-# -------------------------
-if "user_id" not in st.session_state:
-    st.session_state.user_id = None
-
-user_list = get_all_users()
-
-# -------------------------
-# FORCE USER SELECTION
-# -------------------------
 if not st.session_state.user_id:
 
-    st.title("👤 Select or Create User")
+    st.title("🔐 Login")
 
-    mode = st.radio(
-        "Choose option",
-        ["Select existing user", "Create new user"]
-    )
+    mode = st.radio("Choose", ["Login", "Sign Up"])
 
-    selected_user = None
-    new_user_input = ""
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
 
-    # -------------------------
-    # EXISTING USER MODE
-    # -------------------------
-    if mode == "Select existing user":
-        if user_list:
-            selected_user = st.selectbox(
-                "Select user",
-                options=user_list
-            )
+    if st.button("Submit"):
+
+        if mode == "Login":
+            res = sign_in(email, password)
         else:
-            st.info("No users yet — create one")
+            res = sign_up(email, password)
 
-    # -------------------------
-    # NEW USER MODE
-    # -------------------------
-    else:
-        new_user_input = st.text_input("Enter new user")
-
-    # -------------------------
-    # CONTINUE BUTTON
-    # -------------------------
-    if st.button("Continue"):
-
-        if mode == "Create new user":
-            new_user = new_user_input.strip().lower()
-        else:
-            new_user = selected_user
-
-        if new_user:
-            st.session_state.user_id = new_user
+        if "localId" in res:
+            st.session_state.user_id = res["localId"]
+            st.session_state.id_token = res["idToken"]
+            st.success("Logged in!")
             st.rerun()
         else:
-            st.warning("Please select or enter a user")
+            st.error(res.get("error", {}).get("message", "Auth failed"))
 
-    # 🚨 STOP rest of app
     st.stop()
 
-# -------------------------
-# NORMAL APP (USER SET)
-# -------------------------
+# =========================
+# VIEW STATE
+# =========================
+if "view" not in st.session_state:
+    st.session_state.view = "main"
+
+# =========================
+# CHECKLIST VIEW
+# =========================
+if st.session_state.view == "checklist":
+
+    st.title("🛒 Shopping Checklist")
+
+    shopping = st.session_state.get("current_shopping", {})
+
+    if "checked_items" not in st.session_state:
+        st.session_state.checked_items = {}
+
+    if not shopping:
+        st.warning("No shopping list")
+
+    else:
+        # Initialise state
+        for k in shopping.keys():
+            if k not in st.session_state.checked_items:
+                st.session_state.checked_items[k] = False
+
+        # Sort: unchecked first
+        sorted_items = sorted(
+            shopping.items(),
+            key=lambda x: st.session_state.checked_items[x[0]]
+        )
+
+        def toggle_item(item_key):
+            st.session_state.checked_items[item_key] = not st.session_state.checked_items[item_key]
+
+        for k, v in sorted_items:
+            st.checkbox(
+                f"{k}: {format_qty(v['qty'])} {v['unit']}",
+                value=st.session_state.checked_items[k],
+                key=f"check_{k}",
+                on_change=toggle_item,
+                args=(k,)
+            )
+
+    if st.button("⬅ Back"):
+        st.session_state.view = "main"
+        st.rerun()
+
+    st.stop()
+
+# =========================
+# SIDEBAR
+# =========================
 st.sidebar.markdown("### 👤 User")
 st.sidebar.markdown(f"**Current user:** `{st.session_state.user_id}`")
 
-# Optional: allow switching user
-if st.sidebar.button("🔄 Switch User"):
+if st.sidebar.button("🚪 Logout"):
     st.session_state.user_id = None
+    st.session_state.id_token = None
     st.rerun()
 
-# -------------------------
 # DELETE USER
-# -------------------------
 if "confirm_delete" not in st.session_state:
     st.session_state.confirm_delete = False
 
@@ -114,14 +108,11 @@ if st.session_state.confirm_delete:
     st.sidebar.warning("Are you sure you want to delete this user?")
 
     if st.sidebar.button("Confirm Delete"):
-        
         delete_user(st.session_state.user_id)
 
-        # Reset app state
         st.session_state.user_id = None
         st.session_state.confirm_delete = False
 
-        # Clear cached data
         for key in ["data", "recipes", "units"]:
             if key in st.session_state:
                 del st.session_state[key]
@@ -129,7 +120,7 @@ if st.session_state.confirm_delete:
         st.rerun()
 
 # =========================
-# INIT STATE
+# LOAD DATA
 # =========================
 if "last_user" not in st.session_state:
     st.session_state.last_user = None
@@ -141,27 +132,20 @@ if st.session_state.last_user != st.session_state.user_id:
 st.session_state.recipes = st.session_state.data["recipes"]
 st.session_state.units = st.session_state.data["units"]
 
+# =========================
+# INIT STATE
+# =========================
 if "temp_recipe" not in st.session_state:
     st.session_state.temp_recipe = {}
-
-if "new_unit_input" not in st.session_state:
-    st.session_state.new_unit_input = ""
 
 if "recipe_scales" not in st.session_state:
     st.session_state.recipe_scales = {}
 
-if "shopping_sessions" not in st.session_state:
-    st.session_state.shopping_sessions = {}
+if "extra_items" not in st.session_state:
+    st.session_state.extra_items = {}
 
 if "edit_mode" not in st.session_state:
     st.session_state.edit_mode = None
-
-# =========================
-# MOBILE MODE
-# =========================
-if st.query_params.get("mobile") == "1":
-    render_mobile()
-    st.stop()
 
 # =========================
 # UI
@@ -175,7 +159,7 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # =========================
-# TAB 1
+# TAB 1 — SHOPPING
 # =========================
 with tab1:
 
@@ -197,9 +181,6 @@ with tab1:
                 key=f"scale_{r}"
             )
 
-    if "extra_items" not in st.session_state:
-        st.session_state.extra_items = {}
-
     st.markdown("### ➕ Add Extra Items")
 
     col1, col2, col3 = st.columns(3)
@@ -217,50 +198,39 @@ with tab1:
             key="extra_unit"
         )
 
-    extra_unit = None
+        extra_unit = None
 
-    if extra_unit_choice == "➕ Add new unit":
-        new_unit_input = st.text_input("New unit", key="extra_new_unit")
+        if extra_unit_choice == "➕ Add new unit":
+            new_unit_input = st.text_input("New unit", key="extra_new_unit")
 
-        if st.button("Add unit (extra)"):
-            new_unit = new_unit_input.strip().lower()
+            if st.button("Add unit (extra)"):
+                new_unit = new_unit_input.strip().lower()
 
-            if new_unit and new_unit not in st.session_state.units:
-                st.session_state.units.append(new_unit)
-                st.session_state.data["units"] = st.session_state.units
-                save_data(st.session_state.data)
+                if new_unit and new_unit not in st.session_state.units:
+                    st.session_state.units.append(new_unit)
+                    st.session_state.data["units"] = st.session_state.units
+                    save_data(st.session_state.data)
 
-                # reload
-                st.session_state.data = load_data()
-                st.session_state.units = st.session_state.data["units"]
+                    # reload
+                    st.session_state.data = load_data()
+                    st.session_state.units = st.session_state.data["units"]
 
-                st.success(f"Added unit: {new_unit}")
-                st.rerun()
-    else:
-        extra_unit = extra_unit_choice
+                    st.success(f"Added unit: {new_unit}")
+                    st.rerun()
+        else:
+            extra_unit = extra_unit_choice
 
     if st.button("➕ Add Extra Item"):
-        if extra_name and extra_unit:
+        if extra_name:
             st.session_state.extra_items[extra_name] = {
                 "qty": extra_qty,
                 "unit": extra_unit
             }
-            st.success(f"Added {extra_name}")
             st.rerun()
 
     if st.session_state.extra_items:
-        st.markdown("#### Extra Items")
-
         for k, v in st.session_state.extra_items.items():
-            col1, col2 = st.columns([4,1])
-
-            with col1:
-                st.write(f"{k}: {format_qty(v['qty'])} {v['unit']}")
-
-            with col2:
-                if st.button("❌", key=f"remove_extra_{k}"):
-                    del st.session_state.extra_items[k]
-                    st.rerun()
+            st.write(f"{k}: {format_qty(v['qty'])} {v['unit']}")
 
     if selected or st.session_state.extra_items:
 
@@ -281,27 +251,14 @@ with tab1:
         for k, v in shopping.items():
             st.write(f"{k}: {format_qty(v['qty'])} {v['unit']}")
 
-        if st.button("📱 Generate Mobile Checklist"):
-
-            session_id = str(uuid.uuid4())
-
-            sessions = load_sessions()
-            sessions[session_id] = shopping
-            save_sessions(sessions)
-
-            BASE_URL = "https://recipe-app-hrbywsan2sa9wyrrzvfox8.streamlit.app/"
-            user = st.session_state.get("user_id", "default")
-            url = f"{BASE_URL}/?mobile=1&id={session_id}&user={user}"
-
-            qr = generate_qr(url)
-
-            st.success("Open shopping list")
-            st.markdown(f"[👉 Open Shopping List]({url})")
-            st.image(qr, use_container_width=True)
-            st.code(url)
+        if st.button("📱 Open Checklist"):
+            st.session_state.current_shopping = shopping
+            st.session_state.checked_items = {}  # reset state
+            st.session_state.view = "checklist"
+            st.rerun()
 
 # =========================
-# TAB 2
+# TAB 2 — ADD RECIPE
 # =========================
 with tab2:
     st.subheader("Create recipe")
@@ -311,7 +268,6 @@ with tab2:
 
     ingredient_name = st.text_input("Ingredient")
     qty = st.number_input("Quantity", min_value=0.0, step=1.0)
-
     unit_choice = st.selectbox(
         "Unit",
         st.session_state.units + ["➕ Add new unit"]
@@ -320,6 +276,9 @@ with tab2:
     unit = None
 
     if unit_choice == "➕ Add new unit":
+        if "new_unit_input" not in st.session_state:
+            st.session_state.new_unit_input = ""
+
         st.session_state.new_unit_input = st.text_input(
             "New unit",
             value=st.session_state.new_unit_input
@@ -333,7 +292,6 @@ with tab2:
                 st.session_state.data["units"] = st.session_state.units
                 save_data(st.session_state.data)
 
-                # reload
                 st.session_state.data = load_data()
                 st.session_state.units = st.session_state.data["units"]
 
@@ -344,7 +302,7 @@ with tab2:
         unit = unit_choice
 
     if st.button("Add ingredient"):
-        if ingredient_name and unit:
+        if ingredient_name:
             st.session_state.temp_recipe[ingredient_name] = {
                 "qty": qty,
                 "unit": unit
@@ -362,15 +320,11 @@ with tab2:
             st.session_state.data["recipes"] = st.session_state.recipes
             save_data(st.session_state.data)
 
-            # 🔥 reload
-            st.session_state.data = load_data()
-            st.session_state.recipes = st.session_state.data["recipes"]
-
             st.session_state.temp_recipe = {}
             st.rerun()
 
 # =========================
-# TAB 3
+# TAB 3 — MANAGE RECIPES
 # =========================
 with tab3:
 
@@ -398,19 +352,14 @@ with tab3:
     with col3:
         if st.button("🗑 Delete Recipe"):
             del st.session_state.recipes[recipe_to_edit]
-
             st.session_state.data["recipes"] = st.session_state.recipes
             save_data(st.session_state.data)
-
-            # 🔥 reload
-            st.session_state.data = load_data()
-            st.session_state.recipes = st.session_state.data["recipes"]
-
-            st.session_state.edit_mode = None
-
             st.success("Recipe deleted")
             st.rerun()
 
+    # =========================
+    # VIEW MODE
+    # =========================
     if st.session_state.edit_mode != recipe_to_edit:
 
         for ing, d in recipe["ingredients"].items():
@@ -418,6 +367,9 @@ with tab3:
 
         st.info(recipe.get("instructions", ""))
 
+    # =========================
+    # EDIT MODE
+    # =========================
     else:
 
         new_instructions = st.text_area(
@@ -430,6 +382,7 @@ with tab3:
 
         edited = st.session_state.edit_buffer
 
+        # 🔁 EDIT EXISTING INGREDIENTS
         for ing in list(edited.keys()):
 
             col1, col2, col3 = st.columns(3)
@@ -442,35 +395,90 @@ with tab3:
                 )
 
             with col2:
-                unit_val = st.selectbox(
+                unit_choice = st.selectbox(
                     f"{ing} unit",
-                    st.session_state.units,
+                    st.session_state.units + ["➕ Add new unit"],
                     index=st.session_state.units.index(
                         edited[ing]["unit"]
                     ) if edited[ing]["unit"] in st.session_state.units else 0,
                     key=f"unit_{ing}"
                 )
 
+                unit_val = None
+
+                if unit_choice == "➕ Add new unit":
+                    new_unit_input = st.text_input(
+                        f"New unit for {ing}",
+                        key=f"new_unit_{ing}"
+                    )
+
+                    if st.button(f"Add unit {ing}"):
+                        new_unit = new_unit_input.strip().lower()
+
+                        if new_unit and new_unit not in st.session_state.units:
+                            st.session_state.units.append(new_unit)
+                            st.session_state.data["units"] = st.session_state.units
+                            save_data(st.session_state.data)
+
+                            st.session_state.data = load_data()
+                            st.session_state.units = st.session_state.data["units"]
+
+                            st.success(f"Added unit: {new_unit}")
+                            st.rerun()
+                else:
+                    unit_val = unit_choice
+
             with col3:
                 if st.button("❌", key=f"del_{ing}"):
                     del st.session_state.edit_buffer[ing]
                     st.rerun()
 
-            edited[ing]["qty"] = qty_val
-            edited[ing]["unit"] = unit_val
+            if unit_val:
+                edited[ing]["qty"] = qty_val
+                edited[ing]["unit"] = unit_val
 
-        new_ing = st.text_input("Add ingredient")
+        # ➕ ADD NEW INGREDIENT
+        st.markdown("### ➕ Add Ingredient")
+
+        new_ing = st.text_input("Ingredient name")
         new_qty = st.number_input("Qty", min_value=0.0)
-        new_unit = st.selectbox("Unit", st.session_state.units)
+
+        new_unit_choice = st.selectbox(
+            "Unit",
+            st.session_state.units + ["➕ Add new unit"],
+            key="new_ing_unit"
+        )
+
+        new_unit = None
+
+        if new_unit_choice == "➕ Add new unit":
+            new_unit_input = st.text_input("New unit", key="new_ing_unit_input")
+
+            if st.button("Add unit (new ingredient)"):
+                unit_val = new_unit_input.strip().lower()
+
+                if unit_val and unit_val not in st.session_state.units:
+                    st.session_state.units.append(unit_val)
+                    st.session_state.data["units"] = st.session_state.units
+                    save_data(st.session_state.data)
+
+                    st.session_state.data = load_data()
+                    st.session_state.units = st.session_state.data["units"]
+
+                    st.success(f"Added unit: {unit_val}")
+                    st.rerun()
+        else:
+            new_unit = new_unit_choice
 
         if st.button("➕ Add Ingredient"):
-            if new_ing:
+            if new_ing and new_unit:
                 st.session_state.edit_buffer[new_ing] = {
                     "qty": new_qty,
                     "unit": new_unit
                 }
                 st.rerun()
 
+        # 💾 SAVE
         if st.button("💾 Save Changes"):
 
             st.session_state.recipes[recipe_to_edit] = {
@@ -481,7 +489,6 @@ with tab3:
             st.session_state.data["recipes"] = st.session_state.recipes
             save_data(st.session_state.data)
 
-            # 🔥 reload
             st.session_state.data = load_data()
             st.session_state.recipes = st.session_state.data["recipes"]
 

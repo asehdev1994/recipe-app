@@ -3,8 +3,8 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-print("🔥 NEW STORAGE VERSION LOADED")
-print("🔥 DELETE USER FUNCTION AVAILABLE")
+print("NEW STORAGE VERSION LOADED")
+print("DELETE USER FUNCTION AVAILABLE")
 
 # =========================
 # INIT FIREBASE
@@ -24,7 +24,11 @@ db = firestore.client()
 # USER HELPERS
 # =========================
 def _get_user_ref():
-    user_id = st.session_state.get("user_id", "default")
+    user_id = st.session_state.get("user_id")
+
+    if not user_id:
+        raise Exception("User not authenticated")
+    
     ref = db.collection("users").document(user_id)
 
     # 🔥 Ensure document actually exists (CRITICAL FIX)
@@ -57,20 +61,4 @@ def load_data():
 
 def save_data(data):
     ref = _get_user_ref().collection("data").document("recipes")
-    ref.set(data)
-
-# =========================
-# SESSIONS
-# =========================
-def load_sessions():
-    ref = _get_user_ref().collection("data").document("sessions")
-    doc = ref.get()
-
-    if doc.exists:
-        return doc.to_dict()
-
-    return {}
-
-def save_sessions(data):
-    ref = _get_user_ref().collection("data").document("sessions")
     ref.set(data)
