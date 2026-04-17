@@ -1,0 +1,57 @@
+PROJECT CONTEXT
+
+* App type: [e.g. Streamlit app]
+
+* Backend/services: [e.g. Firebase Auth, Firestore, etc.]
+
+* Current functionality:
+
+  * [bullet what already works]
+  * [e.g. users can sign up/login]
+
+* Important constraints:
+
+  * [e.g. keep things simple]
+  * [e.g. avoid exposing secrets]
+  * [e.g. minimal UI complexity]
+
+---
+
+FEATURE / QUESTION
+
+I want to implement: [clearly describe the feature]
+
+---
+
+WHAT I NEED FROM YOU
+
+Please provide:
+
+1. Recommended approach (high-level)
+2. Step-by-step implementation plan
+3. Any required changes to existing code structure
+4. Firebase / backend features to use (if relevant)
+5. Security considerations
+6. Common pitfalls / things to avoid
+
+---
+
+OPTIONAL CONTEXT (include if relevant)
+
+* Code snippets:
+  [paste if needed]
+
+* Errors / issues:
+  [paste if debugging]
+
+* Design preferences:
+  [e.g. simple UI, fast performance, etc.]
+
+---
+
+OUTPUT STYLE
+
+* Be concise but complete
+* Avoid unnecessary theory
+* Prioritise practical implementation
+* Use clear structure (headings / steps)
