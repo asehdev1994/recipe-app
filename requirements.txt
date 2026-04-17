@@ -1,4 +1,6 @@
 streamlit
 qrcode
 pillow
-firebase-admin 
+firebase-admin
+requests
+streamlit-cookie-manager
