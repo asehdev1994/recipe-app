@@ -2,9 +2,30 @@ import json
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
+from auth import refresh_id_token
 
-print("NEW STORAGE VERSION LOADED")
-print("DELETE USER FUNCTION AVAILABLE")
+def ensure_valid_token():
+    import streamlit as st
+
+    cookies = st.session_state.get("cookies")
+
+    if not cookies:
+        return
+
+    refresh_token = cookies.get("refresh_token")
+
+    if not refresh_token:
+        return
+
+    tokens = refresh_id_token(refresh_token)
+
+    if tokens:
+        st.session_state.id_token = tokens["id_token"]
+
+        # 🔁 Update refresh token if rotated
+        if tokens.get("refresh_token"):
+            cookies["refresh_token"] = tokens["refresh_token"]
+            cookies.save()
 
 # =========================
 # INIT FIREBASE
@@ -24,6 +45,8 @@ db = firestore.client()
 # USER HELPERS
 # =========================
 def _get_user_ref():
+    ensure_valid_token()
+
     user_id = st.session_state.get("user_id")
 
     if not user_id:

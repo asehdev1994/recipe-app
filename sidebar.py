@@ -8,8 +8,13 @@ def show_sidebar():
     st.sidebar.markdown(f"**Current user:** `{st.session_state.user_id}`")
 
     if st.sidebar.button("🚪 Logout"):
+        cookies = st.session_state.cookies
+        cookies["refresh_token"] = ""
+        cookies.save()
+        
         st.session_state.user_id = None
         st.session_state.id_token = None
+        
         st.rerun()
 
     # DELETE USER
@@ -24,6 +29,9 @@ def show_sidebar():
 
         if st.sidebar.button("Confirm Delete"):
             delete_user(st.session_state.user_id)
+            cookies = st.session_state.cookies
+            cookies["refresh_token"] = ""
+            cookies.save()
 
             st.session_state.user_id = None
             st.session_state.confirm_delete = False

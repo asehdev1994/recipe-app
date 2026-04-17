@@ -3,7 +3,6 @@
 import streamlit as st
 from streamlit_cookies_manager import EncryptedCookieManager
 
-@st.cache_resource
 def get_cookie_manager():
     cookies = EncryptedCookieManager(
         prefix="recipe_app_",

@@ -29,6 +29,9 @@ def show_auth():
         if "localId" in res:
             st.session_state.user_id = res["localId"]
             st.session_state.id_token = res["idToken"]
+            cookies = st.session_state.cookies
+            cookies["refresh_token"] = res.get("refreshToken", "")
+            cookies.save()
             st.success("Logged in!")
             st.rerun()
         else:

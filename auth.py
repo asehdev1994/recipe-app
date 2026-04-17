@@ -38,3 +38,23 @@ def send_password_reset(email):
     }
 
     return requests.post(url, json=payload).json()
+    
+def refresh_id_token(refresh_token):
+    url = f"https://securetoken.googleapis.com/v1/token?key={API_KEY}"
+
+    data = {
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    }
+
+    response = requests.post(url, data=data)
+
+    if response.status_code == 200:
+        res = response.json()
+        return {
+            "id_token": res["id_token"],
+            "refresh_token": res["refresh_token"],
+            "user_id": res["user_id"],
+        }
+
+    return None
