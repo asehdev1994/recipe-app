@@ -1,10 +1,11 @@
 import streamlit as st
-from storage import load_data, delete_user
+from storage import load_data
 from auth_ui import show_auth
 from views.checklist import show_checklist
 from views.shopping import show_shopping_tab
 from views.add_recipe import show_add_recipe_tab
 from views.manage_recipes import show_manage_recipes_tab
+from sidebar import show_sidebar
 
 # =========================
 # VIEW STATE
@@ -30,35 +31,8 @@ if st.session_state.view == "checklist":
 # =========================
 # SIDEBAR
 # =========================
-st.sidebar.markdown("### 👤 User")
-st.sidebar.markdown(f"**Current user:** `{st.session_state.user_id}`")
-
-if st.sidebar.button("🚪 Logout"):
-    st.session_state.user_id = None
-    st.session_state.id_token = None
-    st.rerun()
-
-# DELETE USER
-if "confirm_delete" not in st.session_state:
-    st.session_state.confirm_delete = False
-
-if st.sidebar.button("🗑 Delete User"):
-    st.session_state.confirm_delete = True
-
-if st.session_state.confirm_delete:
-    st.sidebar.warning("Are you sure you want to delete this user?")
-
-    if st.sidebar.button("Confirm Delete"):
-        delete_user(st.session_state.user_id)
-
-        st.session_state.user_id = None
-        st.session_state.confirm_delete = False
-
-        for key in ["data", "recipes", "units"]:
-            if key in st.session_state:
-                del st.session_state[key]
-
-        st.rerun()
+    
+show_sidebar()
 
 # =========================
 # LOAD DATA
