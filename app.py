@@ -3,9 +3,7 @@ from storage import load_data, save_data, delete_user
 from utils import format_qty, generate_shopping_list
 from auth import sign_in, sign_up
 from auth_ui import show_auth
-
-if not show_auth():
-    st.stop()
+from views.checklist import show_checklist
 
 # =========================
 # VIEW STATE
@@ -14,48 +12,18 @@ if "view" not in st.session_state:
     st.session_state.view = "main"
 
 # =========================
-# CHECKLIST VIEW
+# AUTH
 # =========================
+
+if not show_auth():
+    st.stop()
+
+# =========================
+# Routing
+# =========================
+    
 if st.session_state.view == "checklist":
-
-    st.title("🛒 Shopping Checklist")
-
-    shopping = st.session_state.get("current_shopping", {})
-
-    if "checked_items" not in st.session_state:
-        st.session_state.checked_items = {}
-
-    if not shopping:
-        st.warning("No shopping list")
-
-    else:
-        # Initialise state
-        for k in shopping.keys():
-            if k not in st.session_state.checked_items:
-                st.session_state.checked_items[k] = False
-
-        # Sort: unchecked first
-        sorted_items = sorted(
-            shopping.items(),
-            key=lambda x: st.session_state.checked_items[x[0]]
-        )
-
-        def toggle_item(item_key):
-            st.session_state.checked_items[item_key] = not st.session_state.checked_items[item_key]
-
-        for k, v in sorted_items:
-            st.checkbox(
-                f"{k}: {format_qty(v['qty'])} {v['unit']}",
-                value=st.session_state.checked_items[k],
-                key=f"check_{k}",
-                on_change=toggle_item,
-                args=(k,)
-            )
-
-    if st.button("⬅ Back"):
-        st.session_state.view = "main"
-        st.rerun()
-
+    show_checklist()
     st.stop()
 
 # =========================
