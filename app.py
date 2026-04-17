@@ -21,6 +21,14 @@ if "view" not in st.session_state:
 cookies = get_cookie_manager()
 st.session_state.cookies = cookies
 
+# =========================
+# RESTORE EMAIL
+# =========================
+if "user_email" not in st.session_state or not st.session_state.user_email:
+    email = cookies.get("user_email")
+    if email:
+        st.session_state.user_email = email
+
 if "user_id" not in st.session_state or not st.session_state.user_id:
     refresh_token = cookies.get("refresh_token")
 

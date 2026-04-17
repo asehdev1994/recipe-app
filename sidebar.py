@@ -5,7 +5,8 @@ from storage import delete_user
 def show_sidebar():
 
     st.sidebar.markdown("### 👤 User")
-    st.sidebar.markdown(f"**Current user:** `{st.session_state.user_id}`")
+    email = st.session_state.get("user_email") or st.session_state.user_id
+    st.sidebar.markdown(f"**Current user:** `{email}`")
 
     if st.sidebar.button("🚪 Logout"):
         cookies = st.session_state.cookies
@@ -14,6 +15,7 @@ def show_sidebar():
         
         st.session_state.user_id = None
         st.session_state.id_token = None
+        st.session_state.user_email = None
         
         st.rerun()
 
@@ -35,6 +37,7 @@ def show_sidebar():
 
             st.session_state.user_id = None
             st.session_state.confirm_delete = False
+            st.session_state.user_email = None
 
             for key in ["data", "recipes", "units"]:
                 if key in st.session_state:
