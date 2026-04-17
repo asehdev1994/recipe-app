@@ -1,7 +1,5 @@
 import streamlit as st
-from storage import load_data, save_data, delete_user
-from utils import format_qty, generate_shopping_list
-from auth import sign_in, sign_up
+from storage import load_data, delete_user
 from auth_ui import show_auth
 from views.checklist import show_checklist
 from views.shopping import show_shopping_tab
