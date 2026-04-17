@@ -3,4 +3,4 @@ qrcode
 pillow
 firebase-admin
 requests
-streamlit-cookie-manager
+streamlit-cookies-manager
