@@ -1,0 +1,48 @@
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8501:8501"
+    depends_on:
+      - firebase
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"
+      COOKIE_PASSWORD: local-dev-cookie-password
+      FIREBASE_API_KEY: demo-api-key
+      FIREBASE_PROJECT_ID: demo-recipe-app
+      FIREBASE_AUTH_EMULATOR_HOST: firebase:9099
+      FIRESTORE_EMULATOR_HOST: firebase:8080
+    command:
+      - python
+      - -m
+      - streamlit
+      - run
+      - app.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+      - --server.fileWatcherType=auto
+
+  firebase:
+    build:
+      context: .
+      dockerfile: firebase-emulator.Dockerfile
+    ports:
+      - "4000:4000"
+      - "8080:8080"
+      - "9099:9099"
+    volumes:
+      - firebase_emulator_data:/firebase/.firebase-data
+    command:
+      - firebase
+      - emulators:start
+      - --project=demo-recipe-app
+      - --config=/firebase/firebase.json
+      - --import=/firebase/.firebase-data
+      - --export-on-exit=/firebase/.firebase-data
+
+volumes:
+  firebase_emulator_data:

@@ -1,5 +1,5 @@
 import streamlit as st
-from auth import sign_in, sign_up, send_password_reset
+from recipe_app.services.auth import sign_in, sign_up, send_password_reset
 
 
 def show_auth():

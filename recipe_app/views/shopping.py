@@ -1,6 +1,6 @@
 import streamlit as st
-from utils import format_qty, generate_shopping_list
-from storage import save_data, load_data
+from recipe_app.services.storage import load_data, save_data
+from recipe_app.utils import format_qty, generate_shopping_list
 
 
 def show_shopping_tab():

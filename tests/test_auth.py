@@ -1,6 +1,7 @@
+import os
 from types import SimpleNamespace
 
-import auth
+from recipe_app.services import auth
 
 
 def test_sign_in_posts_expected_payload(monkeypatch):
@@ -65,3 +66,26 @@ def test_refresh_id_token_returns_none_for_failed_request(monkeypatch):
     )
 
     assert auth.refresh_id_token("refresh-token") is None
+
+
+def test_sign_in_uses_auth_emulator_when_configured(monkeypatch):
+    monkeypatch.setenv("FIREBASE_API_KEY", "demo-api-key")
+    monkeypatch.setenv("FIREBASE_AUTH_EMULATOR_HOST", "firebase:9099")
+
+    captured = {}
+
+    def fake_post(url, json=None, data=None):
+        captured["url"] = url
+        return SimpleNamespace(json=lambda: {"ok": True})
+
+    monkeypatch.setattr(auth.requests, "post", fake_post)
+
+    auth.sign_in("user@example.com", "secret")
+
+    assert captured["url"] == (
+        "http://firebase:9099/identitytoolkit.googleapis.com/v1/"
+        "accounts:signInWithPassword?key=demo-api-key"
+    )
+
+    monkeypatch.delenv("FIREBASE_AUTH_EMULATOR_HOST", raising=False)
+    monkeypatch.delenv("FIREBASE_API_KEY", raising=False)

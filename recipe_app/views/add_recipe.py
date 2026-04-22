@@ -1,5 +1,5 @@
 import streamlit as st
-from storage import save_data, load_data
+from recipe_app.services.storage import load_data, save_data
 
 
 def show_add_recipe_tab():

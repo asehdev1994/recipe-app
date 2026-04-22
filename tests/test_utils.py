@@ -1,4 +1,4 @@
-from utils import format_qty, generate_shopping_list
+from recipe_app.utils import format_qty, generate_shopping_list
 
 
 def test_format_qty_strips_trailing_decimal_for_whole_numbers():

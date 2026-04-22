@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import format_qty
+from recipe_app.utils import format_qty
 
 
 def show_checklist():

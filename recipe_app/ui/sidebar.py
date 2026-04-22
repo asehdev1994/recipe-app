@@ -1,5 +1,5 @@
 import streamlit as st
-from storage import delete_user
+from recipe_app.services.storage import delete_user
 
 
 def show_sidebar():

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-import storage
+from recipe_app.services import storage
 
 
 class FakeCookies(dict):
@@ -77,3 +77,9 @@ def test_save_data_persists_recipe_document(monkeypatch):
     storage.save_data(payload)
 
     assert saved["data"] == payload
+
+
+def test_get_project_id_prefers_environment_for_emulator(monkeypatch):
+    monkeypatch.setenv("FIREBASE_PROJECT_ID", "demo-recipe-app")
+
+    assert storage._get_project_id() == "demo-recipe-app"

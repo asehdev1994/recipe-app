@@ -1,8 +1,8 @@
-import json
+import os
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
-from auth import refresh_id_token
+from recipe_app.services.auth import refresh_id_token
 
 def ensure_valid_token():
     cookies = st.session_state.get("cookies")
@@ -26,15 +26,34 @@ def ensure_valid_token():
             cookies.save()
 
 
+def _using_firestore_emulator():
+    return bool(os.getenv("FIRESTORE_EMULATOR_HOST"))
+
+
+def _get_project_id():
+    env_project_id = os.getenv("FIREBASE_PROJECT_ID")
+    if env_project_id:
+        return env_project_id
+
+    firebase_credentials = st.secrets.get("FIREBASE_CREDENTIALS")
+    if firebase_credentials:
+        return firebase_credentials["project_id"]
+
+    raise KeyError("FIREBASE_PROJECT_ID is not configured")
+
+
 def _get_db():
     if not firebase_admin._apps:
-        firebase_dict = dict(st.secrets["FIREBASE_CREDENTIALS"])
+        if _using_firestore_emulator():
+            firebase_admin.initialize_app(options={"projectId": _get_project_id()})
+        else:
+            firebase_dict = dict(st.secrets["FIREBASE_CREDENTIALS"])
 
-        # Fix private key formatting
-        firebase_dict["private_key"] = firebase_dict["private_key"].replace("\\n", "\n")
+            # Fix private key formatting
+            firebase_dict["private_key"] = firebase_dict["private_key"].replace("\\n", "\n")
 
-        cred = credentials.Certificate(firebase_dict)
-        firebase_admin.initialize_app(cred)
+            cred = credentials.Certificate(firebase_dict)
+            firebase_admin.initialize_app(cred)
 
     return firestore.client()
 
