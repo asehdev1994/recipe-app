@@ -1,3 +1,9 @@
-.streamlit/secrets.toml
+.streamlit/
+!.streamlit/secrets.toml.example
 __pycache__/
 *.pyc
+.pytest_cache/
+.idea
+.venv/
+.env
+.env.*

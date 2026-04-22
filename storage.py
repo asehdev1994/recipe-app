@@ -5,8 +5,6 @@ from firebase_admin import credentials, firestore
 from auth import refresh_id_token
 
 def ensure_valid_token():
-    import streamlit as st
-
     cookies = st.session_state.get("cookies")
 
     if not cookies:
@@ -27,19 +25,22 @@ def ensure_valid_token():
             cookies["refresh_token"] = tokens["refresh_token"]
             cookies.save()
 
-# =========================
-# INIT FIREBASE
-# =========================
-if not firebase_admin._apps:
-    firebase_dict = dict(st.secrets["FIREBASE_CREDENTIALS"])
 
-    # Fix private key formatting
-    firebase_dict["private_key"] = firebase_dict["private_key"].replace("\\n", "\n")
+def _get_db():
+    if not firebase_admin._apps:
+        firebase_dict = dict(st.secrets["FIREBASE_CREDENTIALS"])
 
-    cred = credentials.Certificate(firebase_dict)
-    firebase_admin.initialize_app(cred)
+        # Fix private key formatting
+        firebase_dict["private_key"] = firebase_dict["private_key"].replace("\\n", "\n")
 
-db = firestore.client()
+        cred = credentials.Certificate(firebase_dict)
+        firebase_admin.initialize_app(cred)
+
+    return firestore.client()
+
+
+def _get_users_collection():
+    return _get_db().collection("users")
 
 # =========================
 # USER HELPERS
@@ -52,7 +53,7 @@ def _get_user_ref():
     if not user_id:
         raise Exception("User not authenticated")
     
-    ref = db.collection("users").document(user_id)
+    ref = _get_users_collection().document(user_id)
 
     # 🔥 Ensure document actually exists (CRITICAL FIX)
     if not ref.get().exists:
@@ -61,11 +62,11 @@ def _get_user_ref():
     return ref
 
 def get_all_users():
-    users_ref = db.collection("users").stream()
+    users_ref = _get_users_collection().stream()
     return sorted([doc.id for doc in users_ref])
 
 def delete_user(user_id):
-    db.collection("users").document(user_id).delete()
+    _get_users_collection().document(user_id).delete()
 
 # =========================
 # RECIPES
